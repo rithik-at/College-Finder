@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model College {
+  id             Int       @id @default(autoincrement())
+  name           String
+  slug           String    @unique
+  type           String    // "IIT", "NIT", "IIIT", "Private", "State", "Deemed"
+  established    Int?
+  location       String
+  city           String
+  state          String
+  rating         Float     @default(0)
+  ranking        Int?
+  logo           String?
+  image          String?
+  description    String?   @db.Text
+  website        String?
+
+  feesMin        Int?
+  feesMax        Int?
+
+  avgPackage     Float?
+  highestPackage Float?
+  medianPackage  Float?
+  placementRate  Float?
+  topRecruiters  String[]
+
+  acceptedExams  String[]
+
+  courses        Course[]
+  reviews        Review[]
+  cutoffs        AdmissionCutoff[]
+  questions      Question[]
+  savedBy        SavedCollege[]
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([name])
+  @@index([city])
+  @@index([state])
+  @@index([ranking])
+}
+
+model Course {
+  id        Int     @id @default(autoincrement())
+  name      String
+  duration  String
+  level     String  // "UG", "PG"
+  fees      Int
+  seats     Int?
+  collegeId Int
+  college   College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  rating    Float
+  title     String
+  content   String   @db.Text
+  author    String
+  collegeId Int
+  college   College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model AdmissionCutoff {
+  id          Int     @id @default(autoincrement())
+  exam        String
+  year        Int
+  category    String
+  course      String
+  closingRank Int
+  openingRank Int?
+  collegeId   Int
+  college     College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+}
+
+model PredictorHistory {
+  id        Int      @id @default(autoincrement())
+  exam      String
+  rank      Int
+  category  String
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String?
+  email         String?        @unique
+  emailVerified DateTime?
+  image         String?
+  username      String?        @unique
+  createdAt     DateTime       @default(now())
+  
+  accounts      Account[]
+  sessions      Session[]
+  questions     Question[]
+  answers       Answer[]
+  savedColleges SavedCollege[]
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Question {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String   @db.Text
+  collegeId Int
+  userId    String
+  upvotes   Int      @default(0)
+  college   College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers   Answer[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Answer {
+  id         Int      @id @default(autoincrement())
+  content    String   @db.Text
+  questionId Int
+  userId     String
+  upvotes    Int      @default(0)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model SavedCollege {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  collegeId Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  college   College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, collegeId])
+}
